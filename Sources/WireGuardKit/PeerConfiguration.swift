@@ -11,6 +11,7 @@ public struct PeerConfiguration {
     public var persistentKeepAlive: UInt16?
     public var rxBytes: UInt64?
     public var txBytes: UInt64?
+    public var blocked: UInt64?
     public var lastHandshakeTime: Date?
 
     public init(publicKey: PublicKey) {

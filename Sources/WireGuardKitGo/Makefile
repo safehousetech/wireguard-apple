@@ -21,11 +21,11 @@ GOARCH_x86_64 := amd64
 GOOS_macosx := darwin
 GOOS_iphoneos := ios
 
-GO_VERSION := 1.17.13
+GO_VERSION := 1.20.2
 GO_PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')-$(GOARCH_$(shell uname -m))
 GO_TARBALL := go$(GO_VERSION).$(GO_PLATFORM).tar.gz
-GO_HASH_darwin-amd64 := 0fea4e2498067dcf199c71be78bb940f7861efd8ae03c672992d2d65d31f9fc8
-GO_HASH_darwin-arm64 := e4ccc9c082d91eaa0b866078b591fc97d24b91495f12deb3dd2d8eda4e55a6ea
+GO_HASH_darwin-amd64 := c93b8ced9517d07e1cd4c362c6e2d5242cb139e29b417a328fbf19aded08764c
+GO_HASH_darwin-arm64 := 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
 
 build: $(DESTDIR)/libwg-go.a
 version-header: $(DESTDIR)/wireguard-go-version.h

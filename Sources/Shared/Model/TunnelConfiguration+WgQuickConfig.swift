@@ -29,6 +29,7 @@ extension TunnelConfiguration {
         case peerHasInvalidEndpoint(String)
         case peerHasInvalidPersistentKeepAlive(String)
         case peerHasInvalidTransferBytes(String)
+        case peerHasInvalidBlockedCount(String)
         case peerHasInvalidLastHandshakeTime(String)
         case peerHasUnrecognizedKey(String)
         case multiplePeersWithSamePublicKey

@@ -7,23 +7,23 @@ extension TunnelConfiguration {
     convenience init(fromUapiConfig uapiConfig: String, basedOn base: TunnelConfiguration? = nil) throws {
         var interfaceConfiguration: InterfaceConfiguration?
         var peerConfigurations = [PeerConfiguration]()
-
+        
         var lines = uapiConfig.split(separator: "\n")
         lines.append("")
-
+        
         var parserState = ParserState.inInterfaceSection
         var attributes = [String: String]()
-
+        
         for line in lines {
             var key = ""
             var value = ""
-
+            
             if !line.isEmpty {
                 guard let equalsIndex = line.firstIndex(of: "=") else { throw ParseError.invalidLine(line) }
                 key = String(line[..<equalsIndex])
                 value = String(line[line.index(equalsIndex, offsetBy: 1)...])
             }
-
+            
             if line.isEmpty || key == "public_key" {
                 // Previous section has ended; process the attributes collected so far
                 if parserState == .inInterfaceSection {
@@ -40,7 +40,7 @@ extension TunnelConfiguration {
                     break
                 }
             }
-
+            
             if let presentValue = attributes[key] {
                 if key == "allowed_ip" {
                     attributes[key] = presentValue + "," + value
@@ -50,10 +50,11 @@ extension TunnelConfiguration {
             } else {
                 attributes[key] = value
             }
-
+            
             let interfaceSectionKeys: Set<String> = ["private_key", "listen_port", "fwmark"]
-            let peerSectionKeys: Set<String> = ["public_key", "preshared_key", "allowed_ip", "endpoint", "persistent_keepalive_interval", "last_handshake_time_sec", "last_handshake_time_nsec", "rx_bytes", "tx_bytes", "protocol_version"]
-
+            let peerSectionKeys: Set<String> = ["public_key", "preshared_key", "allowed_ip",
+                "endpoint", "persistent_keepalive_interval", "last_handshake_time_sec",
+                "last_handshake_time_nsec", "rx_bytes", "tx_bytes", "protocol_version", "blocked"]
             if parserState == .inInterfaceSection {
                 guard interfaceSectionKeys.contains(key) else {
                     throw ParseError.interfaceHasUnrecognizedKey(key)
@@ -65,25 +66,25 @@ extension TunnelConfiguration {
                 }
             }
         }
-
+        
         let peerPublicKeysArray = peerConfigurations.map { $0.publicKey }
         let peerPublicKeysSet = Set<PublicKey>(peerPublicKeysArray)
         if peerPublicKeysArray.count != peerPublicKeysSet.count {
             throw ParseError.multiplePeersWithSamePublicKey
         }
-
+        
         interfaceConfiguration?.addresses = base?.interface.addresses ?? []
         interfaceConfiguration?.dns = base?.interface.dns ?? []
         interfaceConfiguration?.dnsSearch = base?.interface.dnsSearch ?? []
         interfaceConfiguration?.mtu = base?.interface.mtu
-
+        
         if let interfaceConfiguration = interfaceConfiguration {
             self.init(name: base?.name, interface: interfaceConfiguration, peers: peerConfigurations)
         } else {
             throw ParseError.noInterface
         }
     }
-
+    
     private static func collate(interfaceAttributes attributes: [String: String]) throws -> InterfaceConfiguration {
         guard let privateKeyString = attributes["private_key"] else {
             throw ParseError.interfaceHasNoPrivateKey
@@ -102,7 +103,7 @@ extension TunnelConfiguration {
         }
         return interface
     }
-
+    
     private static func collate(peerAttributes attributes: [String: String]) throws -> PeerConfiguration {
         guard let publicKeyString = attributes["public_key"] else {
             throw ParseError.peerHasNoPublicKey
@@ -178,6 +179,14 @@ extension TunnelConfiguration {
                     lastHandshakeTimeSince1970 += Double(lastHandshakeTimeNsec) / 1000000000.0
                 }
                 peer.lastHandshakeTime = Date(timeIntervalSince1970: lastHandshakeTimeSince1970)
+            }
+        }
+        if let blockedString = attributes["blocked"] {
+            guard let blocked = UInt64(blockedString) else {
+                throw ParseError.peerHasInvalidBlockedCount(blockedString)
+            }
+            if blocked != 0 {
+                peer.blocked = blocked
             }
         }
         return peer

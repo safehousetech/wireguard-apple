@@ -367,7 +367,7 @@ extension TunnelEditTableViewController {
             cell.keyboardType = .numberPad
         case .excludePrivateIPs, .deletePeer:
             cell.keyboardType = .default
-        case .rxBytes, .txBytes, .lastHandshakeTime:
+        case .rxBytes, .txBytes, .blocked, .lastHandshakeTime:
             fatalError()
         }
 

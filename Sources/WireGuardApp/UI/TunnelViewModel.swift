@@ -45,6 +45,7 @@ class TunnelViewModel {
         case allowedIPs
         case rxBytes
         case txBytes
+        case blocked
         case lastHandshakeTime
         case excludePrivateIPs
         case deletePeer
@@ -58,6 +59,7 @@ class TunnelViewModel {
             case .allowedIPs: return tr("tunnelPeerAllowedIPs")
             case .rxBytes: return tr("tunnelPeerRxBytes")
             case .txBytes: return tr("tunnelPeerTxBytes")
+            case .blocked: return tr("blocked")
             case .lastHandshakeTime: return tr("tunnelPeerLastHandshakeTime")
             case .excludePrivateIPs: return tr("tunnelPeerExcludePrivateIPs")
             case .deletePeer: return tr("deletePeerButtonTitle")
@@ -322,6 +324,9 @@ class TunnelViewModel {
             }
             if let txBytes = config.txBytes {
                 scratchpad[.txBytes] = prettyBytes(txBytes)
+            }
+            if let blocked = config.blocked {
+                scratchpad[.blocked] = prettyBytes(blocked)
             }
             if let lastHandshakeTime = config.lastHandshakeTime {
                 scratchpad[.lastHandshakeTime] = prettyTimeAgo(timestamp: lastHandshakeTime)

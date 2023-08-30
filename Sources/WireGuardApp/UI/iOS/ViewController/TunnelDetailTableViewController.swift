@@ -21,7 +21,7 @@ class TunnelDetailTableViewController: UITableViewController {
     static let peerFields: [TunnelViewModel.PeerField] = [
         .publicKey, .preSharedKey, .endpoint,
         .allowedIPs, .persistentKeepAlive,
-        .rxBytes, .txBytes, .lastHandshakeTime
+        .rxBytes, .txBytes, .blocked, .lastHandshakeTime
     ]
 
     static let onDemandFields: [ActivateOnDemandViewModel.OnDemandField] = [
