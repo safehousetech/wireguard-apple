@@ -37,7 +37,7 @@ Here's an example .mobileconfig with the above fields filled in:
 	<key>PayloadVersion</key>
 	<integer>1</integer>
 	<key>PayloadIdentifier</key>
-	<string>com.your-org.wireguard.FCC9BF80-C540-44C1-B243-521FDD1B2905</string>
+	<string>com.safehousetech.wireguard.FCC9BF80-C540-44C1-B243-521FDD1B2905</string>
 	<key>PayloadUUID</key>
 	<string>F346AAF4-53A2-4FA1-ACA3-EEE74DBED029</string>
 	<key>PayloadContent</key>
