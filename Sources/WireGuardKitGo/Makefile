@@ -8,6 +8,7 @@ PLATFORM_NAME ?= macosx
 SDKROOT ?= $(shell xcrun --sdk $(PLATFORM_NAME) --show-sdk-path)
 CONFIGURATION_BUILD_DIR ?= $(CURDIR)/out
 CONFIGURATION_TEMP_DIR ?= $(CURDIR)/.tmp
+CACHE_ROOT ?= $(CURDIR)/.cache
 
 export PATH := $(PATH):/usr/local/bin:/opt/homebrew/bin
 export CC ?= clang
@@ -21,29 +22,36 @@ GOARCH_x86_64 := amd64
 GOOS_macosx := darwin
 GOOS_iphoneos := ios
 
-GO_VERSION := 1.20.2
+GO_VERSION := 1.20.3
 GO_PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')-$(GOARCH_$(shell uname -m))
 GO_TARBALL := go$(GO_VERSION).$(GO_PLATFORM).tar.gz
-GO_HASH_darwin-amd64 := c93b8ced9517d07e1cd4c362c6e2d5242cb139e29b417a328fbf19aded08764c
-GO_HASH_darwin-arm64 := 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
+GO_HASH_darwin-amd64 := c1e1161d6d859deb576e6cfabeb40e3d042ceb1c6f444f617c3c9d76269c3565
+GO_HASH_darwin-arm64 := 86b0ed0f2b2df50fa8036eea875d1cf2d76cefdacf247c44639a1464b7e36b95
+GO_ROOT := $(BUILDDIR)/go-$(GO_VERSION)
+
+
+UNAME := $(shell uname -m)
+ifeq ($(UNAME), $(GOARCH_arm64))
+	GOOS_iphonesimulator := ios
+endif
 
 build: $(DESTDIR)/libwg-go.a
 version-header: $(DESTDIR)/wireguard-go-version.h
 
-$(BUILDDIR)/$(GO_TARBALL):
-	mkdir -p "$(@D)"	
+$(CACHE_ROOT)/$(GO_TARBALL):
+	mkdir -p "$(dir $@)"
 	flock "$@.lock" -c ' \
 	[ -f "$@" ] && exit 0; \
-	curl -o "$@.tmp" "https://dl.google.com/go/$(GO_TARBALL)" && \
-	echo "$(GO_HASH_$(GO_PLATFORM)) $@.tmp" | sha256sum -c && \
+	wget -O "$@.tmp" "https://go.dev/dl/$(GO_TARBALL)" && \
+	echo "$(GO_HASH_$(GO_PLATFORM))  $@.tmp" | sha256sum -c && \
 	mv "$@.tmp" "$@"'
 
-$(BUILDDIR)/go-$(GO_VERSION)/.prepared: $(BUILDDIR)/$(GO_TARBALL)
-	mkdir -p "$(@D)"
+ $(GO_ROOT)/.prepared: $(CACHE_ROOT)/$(GO_TARBALL)
+	mkdir -p "$(dir $@)"
 	flock "$@.lock" -c ' \
 	[ -f "$@" ] && exit 0; \
-	tar -C "$(@D)" --strip-components=1 -xzf "$^" && \
-	patch -p1 -f -N -r- -d "$(@D)" < goruntime-boottime-over-monotonic.diff && \
+	tar -C "$(dir $@)" --strip-components=1 -xzf "$^" && \
+	patch -p1 -f -N -r- -d "$(dir $@)" < goruntime-boottime-over-monotonic.diff && \
 	touch "$@"'
 
 define libwg-go-a
@@ -52,16 +60,16 @@ $(BUILDDIR)/libwg-go-$(1).a: export CGO_CFLAGS := $(CFLAGS_PREFIX) $(ARCH)
 $(BUILDDIR)/libwg-go-$(1).a: export CGO_LDFLAGS := $(CFLAGS_PREFIX) $(ARCH)
 $(BUILDDIR)/libwg-go-$(1).a: export GOOS := $(GOOS_$(PLATFORM_NAME))
 $(BUILDDIR)/libwg-go-$(1).a: export GOARCH := $(GOARCH_$(1))
-$(BUILDDIR)/libwg-go-$(1).a: $(BUILDDIR)/go-$(GO_VERSION)/.prepared go.mod
+$(BUILDDIR)/libwg-go-$(1).a: $(GO_ROOT)/.prepared go.mod
 	go build -ldflags=-w -trimpath -v -o "$(BUILDDIR)/libwg-go-$(1).a" -buildmode c-archive
 	$(RM) "$(BUILDDIR)/libwg-go-$(1).h"
 endef
 $(foreach ARCH,$(ARCHS),$(eval $(call libwg-go-a,$(ARCH))))
 
-$(DESTDIR)/wireguard-go-version.h: $(BUILDDIR)/go-$(GO_VERSION)/.prepared go.mod
+$(DESTDIR)/wireguard-go-version.h: go.mod $(GO_ROOT)/.prepared
 	 sed -E -n 's/.*golang\.zx2c4\.com\/wireguard +v[0-9.]+-[0-9]+-([0-9a-f]{8})[0-9a-f]{4}.*/#define WIREGUARD_GO_VERSION "\1"/p' "$<" > "$@"
 
-$(DESTDIR)/llibwg-go.a: export PATH := $(BUILDDIR)/go-$(GO_VERSION)/bin/:$(PATH)
+$(DESTDIR)/libwg-go.so: export PATH := $(GO_ROOT)/bin/:$(PATH)
 $(DESTDIR)/libwg-go.a: $(foreach ARCH,$(ARCHS),$(BUILDDIR)/libwg-go-$(ARCH).a)
 	@mkdir -vp "$(DESTDIR)"
 	$(LIPO) -create -output "$@" $^
